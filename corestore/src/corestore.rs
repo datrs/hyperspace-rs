@@ -3,11 +3,10 @@ use async_std::sync::{Arc, Mutex};
 use blake2_rfc::blake2b::Blake2b;
 use ed25519_dalek::{PublicKey, SecretKey};
 use futures::channel::mpsc;
-use futures::future::FutureExt;
 use futures::sink::SinkExt;
-use hypercore::{storage_disk, BoxStorage, Feed, Storage, Store};
+use hypercore::{storage_disk, Feed};
 use hypercore_protocol::discovery_key;
-use hypercore_replicator::Replicator;
+
 use log::*;
 use rand::rngs::{OsRng, StdRng};
 use rand::SeedableRng;
@@ -35,6 +34,7 @@ pub enum Event {
 pub struct Corestore {
     master_key: Key,
     feeds: FeedMap,
+    #[allow(dead_code)]
     name: String,
     storage_path: PathBuf,
     subscribers: Vec<mpsc::Sender<Event>>,

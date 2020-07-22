@@ -1,6 +1,6 @@
 use crate::{Corestore, Event as CorestoreEvent};
 use async_std::sync::{Arc, Mutex};
-use async_std::{task, task::JoinHandle};
+use async_std::{task};
 use futures::stream::StreamExt;
 use hypercore_replicator::{Replicator, ReplicatorEvent};
 use std::io;

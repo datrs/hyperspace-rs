@@ -3,7 +3,7 @@ use async_std::sync::{Arc, Mutex};
 use async_std::task;
 use corestore::{replicate_corestore, Corestore};
 use hypercore_replicator::Replicator;
-use std::env;
+
 // use std::io::Result;
 
 pub use hyperspace_common::*;

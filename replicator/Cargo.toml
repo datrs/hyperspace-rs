@@ -10,15 +10,10 @@ edition = "2018"
 anyhow = "1.0.31"
 async-std = "1.6.2"
 futures = "0.3.5"
-# hypercore = { git = "https://github.com/datrs/hypercore", branch = "emit-events" }
-hypercore = { path = "../../hypercore" }
+hypercore = { git = "https://github.com/Frando/datrs-hypercore", branch = "hyperspace" }
 hypercore-protocol = { git = "https://github.com/Frando/hypercore-protocol-rs" }
 sparse-bitfield = "0.11.0"
 hex = "0.4.2"
 bitfield-rle = "0.2.0"
 merkle-tree-stream = "0.12.1"
 signature = "1.1.0"
-
-# [patch.crates-io]
-# hypercore = { git = "https://github.com/datrs/hypercore", branch = "emit-events" }
-# hypercore-protocol = { git = "https://github.com/Frando/hypercore-protocol-rs" }

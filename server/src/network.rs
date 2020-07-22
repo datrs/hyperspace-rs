@@ -64,7 +64,7 @@ pub async fn swarm(mut replicator: Replicator, opts: Opts) -> io::Result<()> {
     swarm_task.await;
     connect_task.await;
     configure_task.await;
-    accept_task.await;
+    accept_task.await.unwrap();
     Ok(())
 }
 

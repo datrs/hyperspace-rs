@@ -22,14 +22,8 @@ log = "0.4.11"
 pretty-hash = "0.4.1"
 merkle-tree-stream = "0.12.1"
 sparse-bitfield = "0.11.0"
-# hypercore = { git = "https://github.com/datrs/hypercore", branch = "emit-events" }
-hypercore = { path = "../../hypercore" }
+hypercore = { git = "https://github.com/Frando/datrs-hypercore", branch = "hyperspace" }
 hypercore-protocol = { git = "https://github.com/Frando/hypercore-protocol-rs" }
 
 [dev-dependencies]
 env_logger = "0.7.1"
-
-[patch.crates-io]
-hypercore = { path = "../../hypercore" }
-# hypercore = { git = "https://github.com/datrs/hypercore", branch = "emit-events" }
-# hypercore-protocol = { git = "https://github.com/Frando/hypercore-protocol-rs" }
