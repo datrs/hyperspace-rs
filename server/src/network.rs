@@ -30,12 +30,13 @@ pub async fn swarm(mut replicator: Replicator, opts: Opts) -> io::Result<()> {
 
     let connect_task = task::spawn(async move {
         while let Some(peers) = peer_rx.next().await {
-            // eprintln!("GOT PEERS {:?}", peers);
-            // TODO: Connect over utp.
+            // TODO: Connect over utp if tcp fails.
             for addr in peers {
+                info!("Connecting to peer {}", addr);
                 let socket = TcpStream::connect(addr).await;
                 match socket {
                     Ok(stream) => {
+                        info!("Connected to peer {}", addr);
                         replicator.add_stream(stream, true).await;
                     }
                     Err(err) => error!("Error connecting to peer {}: {}", addr, err),
@@ -118,7 +119,7 @@ async fn dht(opts: Opts) -> io::Result<(ConfigTx, PeersRx, JoinHandle<()>)> {
                     }
                     if status.lookup {
                         let opts: QueryOpts = (&status.topic[..]).try_into().unwrap();
-                        let opts = opts.port(port);
+                        // let opts = opts.port(port);
                         debug!("lookup: {:?}", opts);
                         node.lookup(opts);
                     }
@@ -146,10 +147,14 @@ pub async fn accept_task(mut replicator: Replicator, port: u32) -> io::Result<()
     Ok(())
 }
 
-pub async fn run_bootstrap_node() -> io::Result<(SocketAddr, JoinHandle<()>)> {
+pub async fn run_bootstrap_node(opts: Opts) -> io::Result<(SocketAddr, JoinHandle<()>)> {
+    let config = DhtConfig::default().empty_bootstrap_nodes().ephemeral();
+    let config = config
+        .bind(opts.address)
+        .await
+        .expect("Failed to create dht with socket");
     // ephemeral node used for bootstrapping
-    let mut bs =
-        HyperDht::with_config(DhtConfig::default().empty_bootstrap_nodes().ephemeral()).await?;
+    let mut bs = HyperDht::with_config(config).await?;
 
     let bs_addr = bs.local_addr()?;
 

@@ -70,7 +70,7 @@ fn main() -> Result<()> {
 }
 
 pub async fn async_main(opts: Opts) -> Result<()> {
-    info!("{:?}", opts);
+    debug!("{:?}", opts);
     let socket_path = socket_path(opts.host);
     let socket = UnixStream::connect(socket_path).await?;
     let mut rpc = Rpc::new();
@@ -96,7 +96,12 @@ pub async fn async_main(opts: Opts) -> Result<()> {
     };
     let core = core?;
 
-    info!("Opened feed: {:?}", core);
+    // TODO: The mutex/inner of RemoteHypercore is not yet pleasant to work with..
+    info!(
+        "Opened feed: {}",
+        hex::encode(core.read().key.clone().unwrap())
+    );
+    debug!("Opened feed: {:?}", core);
 
     match opts.command {
         Command::Read => {

@@ -24,15 +24,15 @@ pub struct State {
 }
 
 pub async fn listen(opts: Opts) -> anyhow::Result<()> {
+    eprintln!("o {:?}", opts);
     let storage = opts
         .storage
         .clone()
-        .unwrap_or_else(|| dirs::home_dir().unwrap().join(STORAGE_DIR))
-        .canonicalize()?;
+        .unwrap_or_else(|| dirs::home_dir().unwrap().join(STORAGE_DIR));
     let socket_path = socket_path(opts.host.clone());
 
     if opts.dht {
-        let (addr, task) = network::run_bootstrap_node().await?;
+        let (addr, task) = network::run_bootstrap_node(opts).await?;
         eprintln!("Bootstrap node address: {}", addr);
         task.await;
         std::process::exit(1);

@@ -8,7 +8,7 @@ use futures::future;
 use futures::future::FutureExt;
 use futures::sink::SinkExt;
 use hrpc::Rpc;
-use parking_lot::RwLock;
+use parking_lot::{RwLock, RwLockReadGuard};
 use std::fmt;
 use std::future::Future;
 use std::io::Result;
@@ -128,9 +128,9 @@ impl RemoteHypercore {
         self.inner.read().byte_length
     }
 
-    // pub fn read(&self) -> RwLockReadGuard<'_, InnerHypercore> {
-    //     self.inner.read()
-    // }
+    pub fn read(&self) -> RwLockReadGuard<'_, InnerHypercore> {
+        self.inner.read()
+    }
 
     pub async fn append(&mut self, blocks: Vec<Vec<u8>>) -> Result<()> {
         let id = self.inner.read().id;
