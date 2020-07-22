@@ -1,6 +1,6 @@
 # hyperspace-rs
 
-A Rust daemon for Hypercore storage and replication.
+An *exploration towards a* Rust daemon for Hypercore storage and replication.
 
 * **[hyperspace-server](server)**: Main binary. Runs a Hypercore storage and networking daemon and can be talked with over a RPC socket.
 * **[hyperspace-client](client)**: Client library to talk with a hyperspace server.
