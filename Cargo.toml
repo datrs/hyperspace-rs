@@ -1,0 +1,11 @@
+[workspace]
+members = ["client","server", "common", "corestore", "replicator"]
+
+[patch.crates-io]
+hypercore = { git = "https://github.com/Frando/datrs-hypercore", branch = "hyperspace" }
+hypercore-protocol = { git = "https://github.com/Frando/hypercore-protocol-rs" }
+
+# Needed until https://github.com/danburkert/prost/pull/317 is merged.
+prost = { git = "https://github.com/Frando/prost", branch = "unknown_fields" }
+prost-types = { git = "https://github.com/Frando/prost", branch = "unknown_fields" }
+prost-build = { git = "https://github.com/Frando/prost", branch = "unknown_fields" }

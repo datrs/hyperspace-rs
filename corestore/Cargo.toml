@@ -1,0 +1,35 @@
+[package]
+name = "corestore"
+version = "0.1.0"
+authors = ["Franz Heinzmann (Frando) <frando@unbiskant.org>"]
+edition = "2018"
+
+[dependencies]
+hypercore-replicator = { path = "../replicator" }
+async-std = "1.6.2"
+hex = "0.4.2"
+rand = "0.7.3"
+random-access-disk = "2.0.0"
+random-access-storage = "4.0.0"
+blake2-rfc = "0.2.18"
+ed25519-dalek = "1.0.0-pre.4"
+anyhow = "1.0.31"
+futures = "0.3.5"
+rand_core = "0.5.1"
+async-trait = "0.1.36"
+bitfield-rle = "0.2.0"
+log = "0.4.11"
+pretty-hash = "0.4.1"
+merkle-tree-stream = "0.12.1"
+sparse-bitfield = "0.11.0"
+# hypercore = { git = "https://github.com/datrs/hypercore", branch = "emit-events" }
+hypercore = { path = "../../hypercore" }
+hypercore-protocol = { git = "https://github.com/Frando/hypercore-protocol-rs" }
+
+[dev-dependencies]
+env_logger = "0.7.1"
+
+[patch.crates-io]
+hypercore = { path = "../../hypercore" }
+# hypercore = { git = "https://github.com/datrs/hypercore", branch = "emit-events" }
+# hypercore-protocol = { git = "https://github.com/Frando/hypercore-protocol-rs" }

@@ -1,0 +1,283 @@
+syntax = "proto2";
+
+package hyperspace;
+import "hrpc.proto";
+
+// General Structs
+message Peer {
+  required bytes remotePublicKey = 1;
+  required string remoteAddress = 2;
+  required string type = 3;
+}
+
+// Hyperspace Methods
+message HyperspaceStatusResponse {
+  required string apiVersion = 1;
+  optional bool holepunchable = 2;
+  optional string remoteAddress = 3;
+}
+
+// Corestore Methods
+
+message OpenRequest {
+  required uint32 id = 1;
+  optional bytes key = 2;
+  optional string name = 3;
+  optional bool weak = 4;
+}
+
+message OpenResponse {
+  required bytes key = 1;
+  required uint64 length = 2;
+  required uint64 byteLength = 3;
+  required bool writable = 4;
+  repeated Peer peers = 5;
+}
+
+// Corestore Events
+
+message FeedEvent {
+  required bytes key = 1;
+}
+
+// Networking Methods
+
+message OpenNetworkResponse {
+  required bytes publicKey = 1;
+  repeated Peer peers = 2;
+}
+
+message NetworkStatus {
+  required bytes discoveryKey = 1;
+  optional bool announce = 2;
+  optional bool lookup = 3;
+  optional bool remember = 4;
+}
+
+message ConfigureNetworkRequest {
+  required NetworkStatus configuration = 1;
+  optional bool flush = 2;
+  optional bytes copyFrom = 3;
+  optional bool overwrite = 4 [default = true];
+}
+
+message NetworkStatusRequest {
+  required bytes discoveryKey = 1;
+}
+
+message NetworkStatusResponse {
+  optional NetworkStatus status = 1;
+}
+
+message AllNetworkStatusesResponse {
+  repeated NetworkStatus statuses = 1;
+}
+
+message RegisterNetworkExtensionRequest {
+  required uint64 resourceId = 1;
+  required string name = 2;
+}
+
+message NetworkExtensionMessage {
+  required uint64 id = 1;
+  required uint64 resourceId = 2;
+  optional bytes remotePublicKey = 3;
+  required bytes data = 4;
+}
+
+// Hypercore Methods
+
+message CloseRequest {
+  required uint32 id = 1;
+}
+
+message GetRequest {
+  required uint32 id = 1;
+  required uint64 seq = 2;
+  required uint64 resourceId = 3;
+  optional bool wait = 4 [default = true];
+  optional bool ifAvailable = 5 [default = true];
+  optional uint64 onWaitId = 6;
+}
+message GetResponse {
+  optional bytes block = 1;
+}
+
+message AppendRequest {
+  required uint32 id = 1;
+  repeated bytes blocks = 2;
+}
+message AppendResponse {
+  required uint64 length = 1;
+  required uint64 byteLength = 2;
+  required uint64 seq = 3;
+}
+
+message UpdateRequest {
+  required uint32 id = 1;
+  optional uint64 minLength = 2;
+  optional bool ifAvailable = 3 [default = true];
+  optional bool hash = 4 [default = true];
+}
+
+message SeekRequest {
+  required uint32 id = 1;
+  required uint64 byteOffset = 2;
+  optional uint64 start = 3;
+  optional uint64 end = 4;
+  optional bool wait = 5 [default = true];
+  optional bool ifAvailable = 6 [default = true];
+}
+message SeekResponse {
+  required uint64 seq = 1;
+  required uint64 blockOffset = 2;
+}
+
+message HasRequest {
+  required uint32 id = 1;
+  required uint64 seq = 2;
+}
+message HasResponse {
+  required bool has = 1;
+}
+
+message CancelRequest {
+  required uint64 id = 1;
+  required uint64 resourceId = 2;
+}
+
+message DownloadRequest {
+  required uint64 id = 1;
+  required uint64 resourceId = 2;
+  optional uint64 start = 3;
+  optional uint64 end = 4;
+  repeated uint64 blocks = 5;
+  optional bool linear = 6;
+}
+
+message DownloadedRequest {
+  required uint64 id = 1;
+  optional uint64 start = 2;
+  optional uint64 end = 3;
+}
+
+message DownloadedResponse {
+  required uint64 bytes = 1;
+}
+
+message UndownloadRequest {
+  required uint64 id = 1;
+  required uint64 resourceId = 2;
+}
+
+message LockRequest {
+  required uint64 id = 1;
+}
+
+
+// Hypercore Events
+
+message AppendEvent {
+  required uint64 id = 1;
+  required uint64 length = 2;
+  required uint64 byteLength = 3;
+}
+
+message PeerEvent {
+  required uint64 id = 1;
+  required Peer peer = 2;
+}
+
+message CloseEvent {
+  required uint64 id = 1;
+}
+
+message WaitEvent {
+  required uint64 id = 1;
+  required uint64 onWaitId = 2;
+}
+
+// Extension Methods
+
+message RegisterExtensionRequest {
+  required uint64 id = 1;
+  required uint64 resourceId = 2;
+  required string name = 3;
+}
+
+message UnregisterExtensionRequest {
+  required uint64 id = 1;
+  required uint64 resourceId = 2;
+}
+
+message ExtensionMessage {
+  required uint64 id = 1;
+  required uint64 resourceId = 2;
+  optional bytes remotePublicKey = 3;
+  required bytes data = 4;
+}
+
+service Hyperspace {
+  option (hrpc.service) = 1;
+
+  // Methods
+  rpc Status (hrpc.Void) returns (HyperspaceStatusResponse) { option (hrpc.method) = 1; }
+}
+
+service Corestore {
+  option (hrpc.service) = 2;
+
+   // Methods
+  rpc Open (OpenRequest) returns (OpenResponse) { option (hrpc.method) = 1; }
+
+  // Events
+  rpc OnFeed (FeedEvent) returns (hrpc.Void)  { option (hrpc.method) = 2; }
+}
+
+service Hypercore {
+  option (hrpc.service) = 3;
+
+   // Methods
+  rpc Get (GetRequest) returns (GetResponse) { option (hrpc.method) = 1; }
+  rpc Append (AppendRequest) returns (AppendResponse) { option (hrpc.method) = 2; }
+  rpc Update (UpdateRequest) returns (hrpc.Void) { option (hrpc.method) = 3; }
+  rpc Seek (SeekRequest) returns (SeekResponse) { option (hrpc.method) = 4; }
+  rpc Has (HasRequest) returns (HasResponse) { option (hrpc.method) = 5; }
+  rpc Cancel (CancelRequest) returns (hrpc.Void) { option (hrpc.method) = 6; }
+  rpc Download (DownloadRequest) returns (hrpc.Void) { option (hrpc.method) = 7; }
+  rpc Downloaded (DownloadedRequest) returns (DownloadedResponse) { option (hrpc.method) = 8; }
+  rpc Undownload (UndownloadRequest) returns (hrpc.Void) { option (hrpc.method) = 9; }
+  rpc Close (CloseRequest) returns (hrpc.Void) { option (hrpc.method) = 10; }
+  rpc RegisterExtension (RegisterExtensionRequest) returns (hrpc.Void) { option (hrpc.method) = 11; }
+  rpc UnregisterExtension (UnregisterExtensionRequest) returns (hrpc.Void) { option (hrpc.method) = 12; }
+  rpc SendExtension (ExtensionMessage) returns (hrpc.Void) { option (hrpc.method) = 13; }
+
+  rpc AcquireLock (LockRequest) returns (hrpc.Void) { option (hrpc.method) = 14; }
+  rpc ReleaseLock (LockRequest) returns (hrpc.Void) { option (hrpc.method) = 15; }
+
+  // Events
+  rpc OnAppend (AppendEvent) returns (hrpc.Void) { option (hrpc.method) = 16; }
+  rpc OnClose (CloseEvent) returns (hrpc.Void) { option (hrpc.method) = 17; }
+  rpc OnPeerOpen (PeerEvent) returns (hrpc.Void) { option (hrpc.method) = 18; }
+  rpc OnPeerRemove (PeerEvent) returns (hrpc.Void) { option (hrpc.method) = 19; }
+  rpc OnExtension (ExtensionMessage) returns (hrpc.Void) { option (hrpc.method) = 20; }
+  rpc OnWait (WaitEvent) returns (hrpc.Void) { option (hrpc.method) = 21; }
+}
+
+service Network {
+  option (hrpc.service) = 4;
+
+   // Methods
+  rpc Open (hrpc.Void) returns (OpenNetworkResponse) { option (hrpc.method) = 1; }
+  rpc Configure (ConfigureNetworkRequest) returns (NetworkStatusResponse) { option (hrpc.method) = 2; }
+  rpc Status (NetworkStatusRequest) returns (NetworkStatusResponse) { option (hrpc.method) = 3; }
+  rpc AllStatuses (hrpc.Void) returns (AllNetworkStatusesResponse) { option (hrpc.method) = 4; }
+  rpc RegisterExtension (RegisterExtensionRequest) returns (hrpc.Void) { option (hrpc.method) = 5; }
+  rpc UnregisterExtension (UnregisterExtensionRequest) returns (hrpc.Void) { option (hrpc.method) = 6; }
+  rpc SendExtension (ExtensionMessage) returns (hrpc.Void) { option (hrpc.method) = 7; }
+
+  // Events
+  rpc OnPeerAdd (PeerEvent) returns (hrpc.Void) { option (hrpc.method) = 8; }
+  rpc OnPeerRemove (PeerEvent) returns (hrpc.Void) { option (hrpc.method) = 9; }
+  rpc OnExtension (ExtensionMessage) returns (hrpc.Void) { option (hrpc.method) = 10; }
+}
