@@ -46,19 +46,28 @@ pub async fn listen(opts: Opts) -> anyhow::Result<()> {
         std::process::exit(1);
     }
 
+    // Open a corestore and wrap in Arc<Mutex>
     let corestore = Corestore::open(storage).await?;
     let corestore = Arc::new(Mutex::new(corestore));
+
+    // Create a replicator
     let replicator = Replicator::new();
+    // Our application state that can be passed around.
     let state = State {
         corestore: corestore.clone(),
         replicator: replicator.clone(),
     };
+
     let mut tasks = vec![];
+    // Add all feeds in the corestore to the replicator
     tasks.push(task::spawn(replicate_corestore(
         corestore,
         replicator.clone(),
     )));
+    // Join the hyperswarm DHT on the discovery keys, add all
+    // incoming connections to the replicator.
     tasks.push(task::spawn(network::swarm(replicator, opts)));
+    // Open the RPC socket and wait for incoming connections.
     tasks.push(task::spawn(socket::accept(
         socket_path,
         state,
