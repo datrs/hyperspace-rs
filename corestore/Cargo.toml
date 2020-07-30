@@ -3,6 +3,7 @@ name = "corestore"
 version = "0.1.0"
 authors = ["Franz Heinzmann (Frando) <frando@unbiskant.org>"]
 edition = "2018"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 hypercore-replicator = { path = "../replicator" }

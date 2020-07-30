@@ -1,5 +1,24 @@
 # hyperspace-rs
 
+<div align="center">
+  <!-- Crates version -->
+  <a href="https://crates.io/crates/{{PROJECTNAME}}">
+    <img src="https://img.shields.io/crates/v/{{PROJECTNAME}}.svg?style=flat-square"
+    alt="Crates.io version" />
+  </a>
+  <!-- Downloads -->
+  <a href="https://crates.io/crates/{{PROJECTNAME}}">
+    <img src="https://img.shields.io/crates/d/{{PROJECTNAME}}.svg?style=flat-square"
+      alt="Download" />
+  </a>
+  <!-- docs.rs docs -->
+  <a href="https://docs.rs/{{PROJECTNAME}}">
+    <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square"
+      alt="docs.rs docs" />
+  </a>
+</div>
+
+
 An exploration towards a Rust daemon for Hypercore storage and replication.
 
 This repo contains a few different crates that together work towards an implementation of the [hyperspace](https://github.com/hyperspace-org/hyperspace) server (orignally written in Node.js). Hyperspace is a small server that stores and manages [Hypercores](https://github.com/datrs/hypercore), and can replicate Hypercores to peers found over the [Hyperswarm](https://github.com/mattsse/hyperswarm-dht) distributed hash table.
@@ -45,3 +64,8 @@ cargo run --bin hyperspace-client -- -h hs1 -n afeed write
 
 # 5. Read from the feed from server 2
 cargo run --bin hyperspace-client -- -h hs2 -k KEY_FROM_ABOVE read
+```
+
+### Contributing
+
+This project, even though in early stages, is very open to contributions. If unsure, please find us in #datrs on IRC or open an issue first.
