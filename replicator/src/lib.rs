@@ -1,3 +1,4 @@
+///! Replicate a set of hypercores over a set of connections
 use anyhow::Result;
 use async_std::sync::{Arc, Mutex};
 use async_std::task;
@@ -32,6 +33,7 @@ enum Event {
     Error(anyhow::Error),
 }
 
+/// A replicator for hypercore feeds
 #[derive(Clone)]
 pub struct Replicator {
     feeds: Arc<Mutex<HashMap<DiscoveryKey, PeeredFeed>>>,
@@ -40,6 +42,7 @@ pub struct Replicator {
 }
 
 impl Replicator {
+    /// Create a new replicator
     pub fn new() -> Self {
         Self {
             feeds: Arc::new(Mutex::new(HashMap::new())),
@@ -47,6 +50,8 @@ impl Replicator {
             subscribers: Arc::new(Mutex::new(vec![])),
         }
     }
+
+    /// Add a feed to the replicator
     pub async fn add_feed(&mut self, feed: Arc<Mutex<Feed>>) {
         let key = feed.lock().await.public_key().as_bytes().to_vec();
         let dkey = discovery_key(&key);
@@ -62,12 +67,14 @@ impl Replicator {
         let _ = futures::future::join_all(futs).await;
     }
 
+    /// Subscribe to events on the replicator
     pub async fn subscribe(&mut self) -> Receiver<ReplicatorEvent> {
         let (send, recv) = channel();
         self.subscribers.lock().await.push(send);
         recv
     }
 
+    /// Add a new connection to the replicator
     pub async fn add_stream<S>(&mut self, stream: S, is_initiator: bool)
     where
         S: AsyncRead + AsyncWrite + Send + Clone + Unpin + 'static,
@@ -85,6 +92,7 @@ impl Replicator {
         self.run_peer(proto).await;
     }
 
+    /// Get stats on the replication status for each feed
     pub async fn stats(&mut self) -> Vec<(DiscoveryKey, Vec<Stats>)> {
         let mut feeds = self.feeds.lock().await;
         let futs = feeds.iter_mut().map(|(dkey, peered_feed)| {
@@ -95,6 +103,7 @@ impl Replicator {
         stats
     }
 
+    /// Wait for all connections and feeds to close
     pub async fn join_all(&mut self) -> Result<()> {
         let mut feeds = self.feeds.lock().await;
         let futs = feeds.values_mut().map(|f| f.join_all());

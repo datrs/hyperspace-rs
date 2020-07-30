@@ -1,12 +1,26 @@
 # hyperspace-rs
 
-An *exploration towards a* Rust daemon for Hypercore storage and replication.
+An exploration towards a Rust daemon for Hypercore storage and replication.
 
-* **[hyperspace-server](server)**: Main binary. Runs a Hypercore storage and networking daemon and can be talked with over a RPC socket.
-* **[hyperspace-client](client)**: Client library to talk with a hyperspace server.
-* **[corestore](corestore)**: Manage storage for hypercores. A port of [corestore](https://github.com/andrewosh/corestore).
-* **[hypercore-replicator](replicator)**: Replicate Hypercores with [hypercore-protocol](https://github.com/Frando/hypercore-protocol-rs). Manages channels for many feeds and peer connections.
-* **[hyperspace-common](common)**: Modules shared between server and client. RPC codegen, utilities.
+This repo contains a few different crates that together work towards an implementation of the [hyperspace](https://github.com/hyperspace-org/hyperspace) server (orignally written in Node.js). Hyperspace is a small server that stores and manages [Hypercores](https://github.com/datrs/hypercore), and can replicate Hypercores to peers found over the [Hyperswarm](https://github.com/mattsse/hyperswarm-dht) distributed hash table.
+
+### Crates
+
+All are still work in progress and in many parts unfinished.
+
+* **[hyperspace-server](server)**: Runs a Hypercore storage and networking daemon that can be talked with over an RPC socket through [hrpc](https://github.com/Frando/hrpc-rs). *Library and binary*
+* **[hyperspace-client](client)**: A client that talks with a hyperspace server over [hrpc](https://github.com/Frando/hrpc-rs) and exposes a `RemoteHypercore` and `RemoteCorestore`. *Libray and binary*
+* **[corestore](corestore)**: Manage storage for hypercores. A port of [corestore](https://github.com/andrewosh/corestore). *Library*
+* **[hypercore-replicator](replicator)**: Replicate Hypercores with [hypercore-protocol](https://github.com/Frando/hypercore-protocol-rs). Manages channels for many feeds and peer connections. *Library*
+* **[hyperspace-common](common)**: Modules shared between server and client. RPC codegen, utilities. *Library*
+
+*Note: None of these crates are published on [crates.io](https://crates.io/) yet*
+
+### Notes
+
+- The modules here use a Hypercore branch with two unmerged PRs that [add an event emitter](https://github.com/datrs/hypercore/pull/116) and [remove the generic type argument on the `Feed` struct](https://github.com/datrs/hypercore/pull/113))
+- The [hyperswarm-dht](https://github.com/mattsse/hyperswarm-dht), which the hyperswarm-server uses, is work in progress and may still break public API
+- [hrpc](https://github.com/Frando/hrpc-rs) is not yet published on crates.io because it depends on an [unmerged PR in prost](https://github.com/danburkert/prost/pull/317)
 
 ### Example
 

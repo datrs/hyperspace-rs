@@ -6,7 +6,7 @@ use hypercore_replicator::Replicator;
 
 // use std::io::Result;
 
-pub use hyperspace_common::*;
+use hyperspace_common::*;
 mod network;
 mod options;
 mod session;
@@ -17,12 +17,19 @@ use session::Session;
 
 const STORAGE_DIR: &str = ".hyperspace-rs";
 
+/// Shared application state.
 #[derive(Clone)]
 pub struct State {
     corestore: Arc<Mutex<Corestore>>,
     replicator: Replicator,
 }
 
+/// Open the server and start listening
+///
+/// This will run a few things in parallel tasks:
+/// - a corestore that stores hypercore feeds
+/// - the hyperswarm dht, waiting for incoming peer connections
+/// - an hrpc socket with corestore and hypercore services
 pub async fn listen(opts: Opts) -> anyhow::Result<()> {
     eprintln!("o {:?}", opts);
     let storage = opts

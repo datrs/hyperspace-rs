@@ -1,6 +1,6 @@
 use crate::{Corestore, Event as CorestoreEvent};
 use async_std::sync::{Arc, Mutex};
-use async_std::{task};
+use async_std::task;
 use futures::stream::StreamExt;
 use hypercore_replicator::{Replicator, ReplicatorEvent};
 use std::io;
@@ -11,6 +11,7 @@ use std::io;
 //     (replicator, task)
 // }
 
+/// Replicate all feeds in a corestore with peers
 pub async fn replicate_corestore(
     corestore: Arc<Mutex<Corestore>>,
     mut replicator: Replicator,

@@ -1,3 +1,5 @@
+//! A store for Hypercore feeds
+
 mod corestore;
 mod feed_map;
 mod replicate;

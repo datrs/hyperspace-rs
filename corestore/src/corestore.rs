@@ -22,15 +22,21 @@ use crate::feed_map::FeedMap;
 const MASTER_KEY_FILENAME: &str = "master_key";
 const NAMESPACE: &str = "corestore";
 
+/// A hypercore public key
 pub type Key = Vec<u8>;
+/// A feed name
 pub type Name = Vec<u8>;
+/// A feed that can be shared between threads
 pub type ArcFeed = Arc<Mutex<Feed>>;
 
+/// Corestore events
 #[derive(Debug, Clone)]
 pub enum Event {
+    /// A new feed has been opened
     Feed(Arc<Mutex<Feed>>),
 }
 
+/// A store for hypercore feeds
 pub struct Corestore {
     master_key: Key,
     feeds: FeedMap,
@@ -41,6 +47,7 @@ pub struct Corestore {
 }
 
 impl Corestore {
+    /// Open a corestore from disk
     pub async fn open<P>(storage_path: P) -> Result<Corestore>
     where
         P: AsRef<Path>,
@@ -75,12 +82,14 @@ impl Corestore {
         }
     }
 
+    /// Subscribe to events from this corestore
     pub async fn subscribe(&mut self) -> mpsc::Receiver<Event> {
         let (send, recv) = mpsc::channel(100);
         self.subscribers.push(send);
         recv
     }
 
+    /// Get a feed by its public key
     pub async fn get_by_key<K>(&mut self, key: K) -> Result<ArcFeed>
     where
         K: AsRef<[u8]>,
@@ -89,6 +98,7 @@ impl Corestore {
         self.open_feed(Some(key), None).await
     }
 
+    /// Get or create a writable feed by name
     pub async fn get_by_name<T>(&mut self, name: T) -> Result<ArcFeed>
     where
         T: AsRef<str>,
@@ -97,6 +107,9 @@ impl Corestore {
         self.open_feed(None, Some(name)).await
     }
 
+    /// Get a feed by its discovery key
+    ///
+    /// This only works if the feed is found on disk
     pub async fn get_by_dkey<K>(&mut self, dkey: K) -> Result<Option<ArcFeed>>
     where
         K: AsRef<[u8]>,
@@ -118,6 +131,9 @@ impl Corestore {
         Ok(feed)
     }
 
+    /// Iterate over all feeds
+    ///
+    /// Returns an iterator of `ArcFeed`s
     pub fn feeds(&self) -> Values<u64, ArcFeed> {
         self.feeds.iter()
     }

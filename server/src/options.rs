@@ -2,13 +2,19 @@ use clap::Clap;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
+/// Options for the storage daemon
 #[derive(Clap, Debug)]
 pub struct Opts {
     /// Set storage path
+    ///
+    /// Defaults to .hyperspace-rs in the user's homedir.
     #[clap(short, long)]
     pub storage: Option<PathBuf>,
 
-    /// Set unix hostname
+    /// Set unix hostname for the HRPC socket
+    ///
+    /// The actual socket will be created at tmpdir/[host].sock
+    /// Defaults to "hyperspace".
     #[clap(short, long)]
     pub host: Option<String>,
 
