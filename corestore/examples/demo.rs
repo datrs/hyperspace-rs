@@ -81,7 +81,7 @@ async fn async_main() -> Result<()> {
     let stats = replicator.stats().await;
     eprintln!("STATS: {:?}", stats);
 
-    task.await;
+    task.await?;
     match replicator.join_all().await {
         Ok(_) => info!("Replicator task closed without error"),
         Err(err) => info!("Replicator task closed with error: {}", err),

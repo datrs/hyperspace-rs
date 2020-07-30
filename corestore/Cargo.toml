@@ -27,3 +27,6 @@ hypercore-protocol = { git = "https://github.com/Frando/hypercore-protocol-rs" }
 
 [dev-dependencies]
 env_logger = "0.7.1"
+tempdir = "0.3.7"
+async-std = { version = "1.6.2", features = ["attributes"] }
+piper = "0.1.3"

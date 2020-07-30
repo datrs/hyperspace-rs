@@ -3,10 +3,11 @@ use async_std::sync::{Arc, Mutex};
 use async_std::task;
 use corestore::{replicate_corestore, Corestore};
 use hypercore_replicator::Replicator;
+use hyperspace_common::socket_path;
+use log::*;
 
 // use std::io::Result;
 
-use hyperspace_common::*;
 mod network;
 mod options;
 mod session;
@@ -31,7 +32,7 @@ pub struct State {
 /// - the hyperswarm dht, waiting for incoming peer connections
 /// - an hrpc socket with corestore and hypercore services
 pub async fn listen(opts: Opts) -> anyhow::Result<()> {
-    eprintln!("o {:?}", opts);
+    debug!("start server with {:?}", opts);
     let storage = opts
         .storage
         .clone()
@@ -40,7 +41,7 @@ pub async fn listen(opts: Opts) -> anyhow::Result<()> {
 
     if opts.dht {
         let (addr, task) = network::run_bootstrap_node(opts).await?;
-        eprintln!("Bootstrap node address: {}", addr);
+        info!("bootstrap node address: {}", addr);
         task.await;
         std::process::exit(1);
     }
@@ -68,7 +69,7 @@ pub async fn listen(opts: Opts) -> anyhow::Result<()> {
 }
 
 fn on_rpc_connection(state: State, stream: UnixStream) {
-    eprintln!("new connection from {:?}", stream.peer_addr().unwrap());
+    info!("new connection from {:?}", stream.peer_addr().unwrap());
     let mut rpc = hrpc::Rpc::new();
     let _session = Session::new(&mut rpc, state);
     task::spawn(async move {

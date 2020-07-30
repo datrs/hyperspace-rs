@@ -12,6 +12,7 @@ use futures::prelude::*;
 use futures::stream::StreamExt;
 use hypercore::Feed;
 use hypercore_protocol::{discovery_key, Event as ProtocolEvent, Protocol, ProtocolBuilder};
+use log::*;
 use std::collections::HashMap;
 
 mod peer;
@@ -128,6 +129,7 @@ impl Replicator {
 
             let mut remote_public_key = None;
             while let Some(event) = events.next().await {
+                trace!("incoming event {:?}", event);
                 match event {
                     Event::Protocol(ProtocolEvent::Handshake(key)) => {
                         remote_public_key = Some(key);
@@ -149,9 +151,14 @@ impl Replicator {
                     Event::Protocol(ProtocolEvent::DiscoveryKey(dkey)) => {
                         this.emit(ReplicatorEvent::DiscoveryKey(dkey)).await;
                     }
-                    Event::Error(err) => return Err(err),
+                    Event::Error(err) => {
+                        error!("protocol error: {:?}", err);
+                        return Err(err);
+                    }
                     Event::Replicator(ReplicatorEvent::Feed(key)) => {
-                        proto_control.open(key).await.unwrap();
+                        if let Some(_) = remote_public_key {
+                            proto_control.open(key).await.unwrap();
+                        }
                     }
                     _ => {}
                 }

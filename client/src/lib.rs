@@ -6,6 +6,7 @@ mod freemap;
 mod session;
 mod stream;
 
+pub use hyperspace_common::codegen;
 pub use session::*;
 pub use stream::*;
 
