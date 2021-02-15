@@ -13,11 +13,17 @@ pub use stream::*;
 /// Open a remote corestore
 ///
 /// Example:
-/// ```rust
-/// let corestore = open_corestore(None).await?;
-/// let feed = corestore.get_by_name("somename").await?;
-/// feed.append("hello, world".to_bytes()).await?;
-/// let block = feed.get(0).await?;
+/// ```no_run
+/// # #[async_std::main]
+/// # async fn main () -> anyhow::Result<()> {
+/// use hyperspace_client::open_corestore;
+/// let mut corestore = open_corestore(None).await?;
+/// let mut feed = corestore.open_by_name("somename").await?;
+/// let block = "hello, world".as_bytes().to_vec();
+/// feed.append(vec![block]).await?;
+/// let _block = feed.get(0).await?;
+/// Ok(())
+/// # }
 /// ```
 pub async fn open_corestore(host: Option<String>) -> std::io::Result<RemoteCorestore> {
     let socket_path = socket_path(host);

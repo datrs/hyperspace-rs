@@ -1,14 +1,12 @@
 use anyhow::Result;
 use async_std::net::{TcpListener, TcpStream};
-use async_std::sync::{Arc, Mutex};
 use async_std::task;
 use futures::stream::StreamExt;
-use hypercore_protocol::discovery_key;
 use log::*;
 use std::env;
 
 use corestore::{replicate_corestore, Corestore};
-use hypercore_replicator::Replicator;
+use hypercore_replicator::{discovery_key, Replicator};
 
 fn main() -> Result<()> {
     env_logger::from_env(env_logger::Env::default().default_filter_or("info")).init();
@@ -44,18 +42,16 @@ async fn async_main() -> Result<()> {
 
     eprintln!("start. storage {} mode {}", storage, mode);
 
-    let corestore = Corestore::open(storage).await?;
-    let corestore = Arc::new(Mutex::new(corestore));
+    let mut corestore = Corestore::open(storage).await?;
 
     {
-        let feed = corestore.lock().await.get_by_name("first").await?;
+        let feed = corestore.get_by_name("first").await?;
         let mut feed = feed.lock().await;
         feed.append("foo".as_bytes()).await?;
         eprintln!("get 0: {:?}", feed.get(0).await?);
     }
 
     {
-        let mut corestore = corestore.lock().await;
         for key in keys().iter() {
             let feed = corestore.get_by_key(&key).await?;
             let feed = feed.lock().await;

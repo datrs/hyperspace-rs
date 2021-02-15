@@ -1,16 +1,14 @@
 use async_std::prelude::*;
-use async_std::sync::{Arc, Mutex};
 use async_std::task;
 use corestore::{replicate_corestore, Corestore};
 use hypercore_replicator::Replicator;
 use hyperspace_common::socket_path;
 use log::*;
 
-// use std::io::Result;
-
 mod network;
 mod options;
 mod rpc;
+pub use network::run_bootstrap_node;
 pub use options::Opts;
 
 const STORAGE_DIR: &str = ".hyperspace-rs";
@@ -35,13 +33,6 @@ pub async fn listen(opts: Opts) -> anyhow::Result<()> {
         .clone()
         .unwrap_or_else(|| dirs::home_dir().unwrap().join(STORAGE_DIR));
     let socket_path = socket_path(opts.host.clone());
-
-    if opts.dht {
-        let (addr, task) = network::run_bootstrap_node(opts).await?;
-        info!("bootstrap node address: {}", addr);
-        task.await;
-        std::process::exit(1);
-    }
 
     // Open a corestore and wrap in Arc<Mutex>
     let corestore = Corestore::open(storage).await?;

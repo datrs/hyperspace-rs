@@ -128,6 +128,10 @@ impl RemoteHypercore {
         self.inner.read().byte_length
     }
 
+    pub fn key(&self) -> Vec<u8> {
+        self.inner.read().key.clone().unwrap()
+    }
+
     pub fn read(&self) -> RwLockReadGuard<'_, InnerHypercore> {
         self.inner.read()
     }

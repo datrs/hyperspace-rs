@@ -91,12 +91,17 @@ impl Corestore {
     /// so don't use this across `await`s.
     ///
     /// Example:
-    /// ```rust
+    /// ```
+    /// # #[async_std::main]
+    /// # async fn main() -> anyhow::Result<()> {
+    /// let corestore = corestore::Corestore::open("/tmp/foo").await?;
     /// for feed in &corestore.feeds().await {
     ///     // Do somethings with feed.
     ///     // Don't await things here!
     ///     // Instead, clone the feed if you need to keep a reference.
     /// }
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn feeds(&self) -> FeedsIterator<'_> {
         let inner = self.inner.read().await;

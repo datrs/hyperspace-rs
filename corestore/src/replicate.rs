@@ -1,14 +1,7 @@
 use crate::{Corestore, Event as CorestoreEvent};
 use async_std::stream::StreamExt;
-use async_std::sync::{Arc, Mutex};
 use hypercore_replicator::{Replicator, ReplicatorEvent};
 use std::io;
-
-// pub fn replicate_corestore(corestore: Arc<Mutex<Corestore>>) -> (Replicator, JoinHandle<()>) {
-//     let replicator = Replicator::new();
-//     let task = task::spawn(task_replicate(corestore, replicator.clone()));
-//     (replicator, task)
-// }
 
 /// Replicate all feeds in a corestore with peers
 pub async fn replicate_corestore(
@@ -53,6 +46,7 @@ pub async fn replicate_corestore(
 #[cfg(test)]
 mod test {
     use super::*;
+    use async_std::task;
 
     #[async_std::test]
     async fn test_corestore_replicate() -> anyhow::Result<()> {
@@ -64,22 +58,20 @@ mod test {
         let dir1 = TempDir::new("corestore-test1")?;
         let dir2 = TempDir::new("corestore-test2")?;
 
-        let store1 = Corestore::open(&dir1).await?;
-        let store1 = Arc::new(Mutex::new(store1));
-        let store2 = Corestore::open(&dir2).await?;
-        let store2 = Arc::new(Mutex::new(store2));
+        let mut store1 = Corestore::open(&dir1).await?;
+        let mut store2 = Corestore::open(&dir2).await?;
 
         let mut rep1 = Replicator::new();
         let mut rep2 = Replicator::new();
 
-        let feed1 = store1.lock().await.get_by_name("foo").await?;
+        let feed1 = store1.get_by_name("foo").await?;
         let key1 = {
             let mut feed1 = feed1.lock().await;
             feed1.append("hello".as_bytes()).await?;
             feed1.public_key().as_bytes().to_vec()
         };
 
-        let _ = store2.lock().await.get_by_key(&key1).await?;
+        let _ = store2.get_by_key(&key1).await?;
 
         let cap = 1024 * 1024 * 4;
 
@@ -91,24 +83,34 @@ mod test {
         task::spawn(replicate_corestore(store1.clone(), rep1.clone()));
         task::spawn(replicate_corestore(store2.clone(), rep2.clone()));
 
-        let feed2 = store2.lock().await.get_by_key(&key1).await?;
+        let feed2 = store2.get_by_key(&key1).await?;
+        let mut feed2_events = feed2.lock().await.subscribe();
 
-        // TODO: Don't await a timeout but an event.
-        timeout(100).await;
+        let event = feed2_events.next().await;
+        assert!(matches!(event, Some(hypercore::Event::Download(_))));
 
         let block = feed2.lock().await.get(0).await?;
+        eprintln!("block {:?}", block);
         assert!(block == Some("hello".as_bytes().to_vec()));
+
+        feed1.lock().await.append("world".as_bytes()).await?;
+
+        let event = feed2_events.next().await;
+        assert!(matches!(event, Some(hypercore::Event::Download(_))));
+
+        let block = feed2.lock().await.get(1).await?;
+        assert!(block == Some("world".as_bytes().to_vec()));
 
         Ok(())
     }
 
-    async fn timeout(ms: u64) {
-        let _ = async_std::future::timeout(
-            std::time::Duration::from_millis(ms),
-            futures::future::pending::<()>(),
-        )
-        .await;
-    }
+    // async fn timeout(ms: u64) {
+    //     let _ = async_std::future::timeout(
+    //         std::time::Duration::from_millis(ms),
+    //         futures::future::pending::<()>(),
+    //     )
+    //     .await;
+    // }
 
     fn init() {
         let _ = env_logger::builder().is_test(true).try_init();

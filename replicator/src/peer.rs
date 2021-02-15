@@ -4,7 +4,7 @@ use async_std::sync::{Arc, Mutex};
 use async_std::task::{self, JoinHandle};
 use futures::future::FutureExt;
 use hypercore::bitfield::Bitfield;
-use hypercore::{Event, Feed, Node, Proof, Signature};
+use hypercore::{Event as FeedEvent, Feed, Node, Proof, Signature};
 use hypercore_protocol::schema::*;
 use hypercore_protocol::{Channel, Message};
 use merkle_tree_stream::Node as NodeTrait;
@@ -102,48 +102,37 @@ impl Peer {
     }
 
     pub async fn run(&mut self) -> Result<()> {
+        #[derive(Debug)]
         enum Event {
             Feed(hypercore::Event),
-            Channel(hypercore_protocol::Message),
+            Message(hypercore_protocol::Message),
         }
 
-        let feed_events = self.feed.lock().await.subscribe();
-        let feed_events = feed_events.map(Event::Feed);
-
-        let channel_events = self.channel.take_receiver().unwrap().map(Event::Channel);
-
+        let feed_events = self.feed.lock().await.subscribe().map(Event::Feed);
+        let channel_events = self.channel.take_receiver().unwrap().map(Event::Message);
         let mut events = channel_events.merge(feed_events);
+
+        self.on_open().await?;
         while let Some(event) = events.next().await {
+            // log::debug!("RECV event {:?}", event);
             match event {
-                Event::Channel(e) => self.on_channel_message(e).await?,
-                Event::Feed(e) => self.on_feed_event(e).await?,
+                Event::Message(message) => match message {
+                    Message::Open(_) => self.on_open().await?,
+                    Message::Want(want) => self.on_want(want).await?,
+                    Message::Have(have) => self.on_have(have).await?,
+                    Message::Request(request) => self.on_request(request).await?,
+                    Message::Data(data) => self.on_data(data).await?,
+                    _ => {}
+                },
+                Event::Feed(event) => match event {
+                    FeedEvent::Download(index) => self.send_have(index, None).await?,
+                    FeedEvent::Append => {
+                        let len = self.feed.lock().await.len();
+                        self.send_have(len - 1, None).await?;
+                    }
+                    _ => {}
+                },
             }
-        }
-        Ok(())
-    }
-
-    async fn on_feed_event(&mut self, event: hypercore::Event) -> Result<()> {
-        // eprintln!("feed event {:?}", event);
-        match event {
-            Event::Download(index) => self.send_have(index, None).await?,
-            Event::Append => {
-                let len = self.feed.lock().await.len();
-                self.send_have(len - 1, None).await?;
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    async fn on_channel_message(&mut self, message: Message) -> Result<()> {
-        // eprintln!("onmessage {:?}", message);
-        match message {
-            Message::Open(_) => self.on_open().await?,
-            Message::Want(want) => self.on_want(want).await?,
-            Message::Have(have) => self.on_have(have).await?,
-            Message::Request(request) => self.on_request(request).await?,
-            Message::Data(data) => self.on_data(data).await?,
-            _ => {}
         }
         Ok(())
     }

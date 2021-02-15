@@ -121,7 +121,7 @@ impl Replicator {
         let mut this = self.clone();
         let task = task::spawn(async move {
             let replicator_events = this.subscribe().await.map(|e| Event::Replicator(e));
-            let mut proto_control = proto.commands();
+            let mut proto_command = proto.commands();
             let proto_events = proto.map(|e| match e {
                 Ok(ev) => Event::Protocol(ev),
                 Err(err) => Event::Error(err.into()),
@@ -130,7 +130,7 @@ impl Replicator {
 
             let mut remote_public_key = None;
             while let Some(event) = events.next().await {
-                trace!("incoming event {:?}", event);
+                debug!("incoming event {:?}", event);
                 match event {
                     Event::Protocol(ProtocolEvent::Handshake(key)) => {
                         remote_public_key = Some(key);
@@ -139,7 +139,7 @@ impl Replicator {
                         for peered_feed in feeds.values() {
                             let feed = peered_feed.feed.lock().await;
                             let public_key = feed.public_key().as_bytes().to_vec();
-                            proto_control.open(public_key).await.unwrap();
+                            proto_command.open(public_key).await.unwrap();
                         }
                     }
                     Event::Protocol(ProtocolEvent::Channel(channel)) => {
@@ -147,6 +147,7 @@ impl Replicator {
                         if let Some(peered_feed) = feeds.get_mut(channel.discovery_key()) {
                             let remote_public_key = remote_public_key.clone().unwrap();
                             peered_feed.add_peer(remote_public_key, channel).await;
+                        } else {
                         }
                     }
                     Event::Protocol(ProtocolEvent::DiscoveryKey(dkey)) => {
@@ -158,7 +159,7 @@ impl Replicator {
                     }
                     Event::Replicator(ReplicatorEvent::Feed(key)) => {
                         if let Some(_) = remote_public_key {
-                            proto_control.open(key).await.unwrap();
+                            proto_command.open(key).await.unwrap();
                         }
                     }
                     _ => {}
