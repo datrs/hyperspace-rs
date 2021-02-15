@@ -7,6 +7,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 hypercore-replicator = { path = "../replicator" }
+hypercore = { git = "https://github.com/Frando/datrs-hypercore", branch = "hyperspace" }
 async-std = "1.9"
 hex = "0.4.2"
 rand = "0.7.3"
@@ -23,8 +24,6 @@ log = "0.4.11"
 pretty-hash = "0.4.1"
 merkle-tree-stream = "0.12.1"
 sparse-bitfield = "0.11.0"
-hypercore = { git = "https://github.com/Frando/datrs-hypercore", branch = "hyperspace" }
-hypercore-protocol = { git = "https://github.com/Frando/hypercore-protocol-rs" }
 
 [dev-dependencies]
 env_logger = "0.7.1"

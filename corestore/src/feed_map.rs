@@ -1,6 +1,6 @@
 use async_std::sync::{Arc, Mutex};
 use hypercore::Feed;
-use hypercore_protocol::discovery_key;
+use hypercore_replicator::discovery_key;
 use std::collections::{hash_map::Values, HashMap};
 
 use crate::corestore::{ArcFeed, Key, Name};

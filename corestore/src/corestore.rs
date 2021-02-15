@@ -5,7 +5,7 @@ use ed25519_dalek::{PublicKey, SecretKey};
 use futures::channel::mpsc;
 use futures::sink::SinkExt;
 use hypercore::{storage_disk, Feed};
-use hypercore_protocol::discovery_key;
+use hypercore_replicator::discovery_key;
 
 use log::*;
 use rand::rngs::{OsRng, StdRng};
