@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 anyhow = "1.0.31"
-async-std = "1.6.2"
+async-std = { version = "1.9", features = ["unstable"] }
 futures = "0.3.5"
 hypercore = { git = "https://github.com/Frando/datrs-hypercore", branch = "hyperspace" }
 # hypercore-protocol = { git = "https://github.com/Frando/hypercore-protocol-rs" }

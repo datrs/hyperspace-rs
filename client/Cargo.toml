@@ -11,7 +11,7 @@ path = "src/bin.rs"
 
 [dependencies]
 hyperspace-common = { path = "../common" }
-async-std = { version = "1.6.2", features = ["attributes"] }
+async-std = { version = "1.9", features = ["attributes"] }
 hrpc = { git = "https://github.com/Frando/hrpc-rs.git" }
 env_logger = "0.7.1"
 futures = "0.3.5"
