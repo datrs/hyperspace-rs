@@ -5,6 +5,7 @@ use corestore::Feed;
 use hyperspace_common::client::Client;
 use hyperspace_common::server;
 use hyperspace_common::*;
+use log::*;
 use std::collections::HashMap;
 use std::io::{self, Error, ErrorKind};
 
@@ -74,7 +75,7 @@ impl server::Hypercore for Session {
 #[async_trait]
 impl server::Corestore for Session {
     async fn open(&mut self, req: OpenRequest) -> io::Result<OpenResponse> {
-        eprintln!("req: {:?}", req);
+        trace!("req: {:?}", req);
         let feed = if let Some(name) = req.name {
             self.corestore
                 .lock()
@@ -104,5 +105,15 @@ impl server::Corestore for Session {
             writable: feed.secret_key().is_some(),
             peers: vec![],
         })
+    }
+}
+
+#[async_trait]
+impl server::Network for Session {
+    async fn configure(
+        &mut self,
+        _request: ConfigureNetworkRequest,
+    ) -> io::Result<NetworkStatusResponse> {
+        Ok(NetworkStatusResponse { status: None })
     }
 }

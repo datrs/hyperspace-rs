@@ -1,4 +1,4 @@
-use async_std::os::unix::net::UnixStream;
+use async_std::prelude::*;
 use async_std::sync::{Arc, Mutex};
 use async_std::task;
 use corestore::{replicate_corestore, Corestore};
@@ -10,11 +10,8 @@ use log::*;
 
 mod network;
 mod options;
-mod session;
-mod socket;
+mod rpc;
 pub use options::Opts;
-
-use session::Session;
 
 const STORAGE_DIR: &str = ".hyperspace-rs";
 
@@ -58,30 +55,13 @@ pub async fn listen(opts: Opts) -> anyhow::Result<()> {
         replicator: replicator.clone(),
     };
 
-    let mut tasks = vec![];
     // Add all feeds in the corestore to the replicator
-    tasks.push(task::spawn(replicate_corestore(
-        corestore,
-        replicator.clone(),
-    )));
+    let task1 = task::spawn(replicate_corestore(corestore, replicator.clone()));
     // Join the hyperswarm DHT on the discovery keys, add all
     // incoming connections to the replicator.
-    tasks.push(task::spawn(network::swarm(replicator, opts)));
+    let task2 = network::run(replicator, opts);
     // Open the RPC socket and wait for incoming connections.
-    tasks.push(task::spawn(socket::accept(
-        socket_path,
-        state,
-        on_rpc_connection,
-    )));
-    futures::future::join_all(tasks).await;
+    let task3 = task::spawn(rpc::run_rpc(socket_path, state));
+    task1.try_join(task2).try_join(task3).await?;
     Ok(())
-}
-
-fn on_rpc_connection(state: State, stream: UnixStream) {
-    info!("new connection from {:?}", stream.peer_addr().unwrap());
-    let mut rpc = hrpc::Rpc::new();
-    let _session = Session::new(&mut rpc, state);
-    task::spawn(async move {
-        rpc.connect(stream).await.unwrap();
-    });
 }

@@ -19,8 +19,8 @@ pub struct Opts {
     pub host: Option<String>,
 
     /// Address to which Hyperswarm binds
-    #[clap(short, long, default_value = "127.0.0.1:3401")]
-    pub address: SocketAddr,
+    #[clap(short, long)]
+    pub address: Option<SocketAddr>,
 
     /// Override default bootstrapp addresses
     #[clap(short, long)]
@@ -37,4 +37,18 @@ pub struct Opts {
     /// A level of verbosity, and can be used multiple times
     #[clap(short, long, parse(from_occurrences))]
     pub verbose: i32,
+}
+
+impl Default for Opts {
+    fn default() -> Self {
+        Self {
+            storage: None,
+            host: None,
+            address: None,
+            bootstrap: vec![],
+            port: 12345,
+            dht: false,
+            verbose: 0,
+        }
+    }
 }
