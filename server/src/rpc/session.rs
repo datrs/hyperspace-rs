@@ -14,7 +14,7 @@ use crate::State;
 #[derive(Clone)]
 pub struct Session {
     client: Client,
-    corestore: Arc<Mutex<Corestore>>,
+    corestore: Corestore,
     cores: Arc<Mutex<HashMap<u32, Arc<Mutex<Feed>>>>>,
 }
 
@@ -77,19 +77,9 @@ impl server::Corestore for Session {
     async fn open(&mut self, req: OpenRequest) -> io::Result<OpenResponse> {
         trace!("req: {:?}", req);
         let feed = if let Some(name) = req.name {
-            self.corestore
-                .lock()
-                .await
-                .get_by_name(name)
-                .await
-                .map_err(map_err)?
+            self.corestore.get_by_name(name).await.map_err(map_err)?
         } else if let Some(key) = req.key {
-            self.corestore
-                .lock()
-                .await
-                .get_by_key(key)
-                .await
-                .map_err(map_err)?
+            self.corestore.get_by_key(key).await.map_err(map_err)?
         } else {
             return Err(Error::new(ErrorKind::Other, "Invalid parameters"));
         };

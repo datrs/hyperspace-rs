@@ -12,16 +12,16 @@ use std::io;
 
 /// Replicate all feeds in a corestore with peers
 pub async fn replicate_corestore(
-    corestore: Arc<Mutex<Corestore>>,
+    mut corestore: Corestore,
     mut replicator: Replicator,
 ) -> io::Result<()> {
     // Add all feeds in the corestore to the replicator.
-    for feed in corestore.lock().await.feeds() {
+    for feed in &corestore.feeds().await {
         replicator.add_feed(feed.clone()).await;
     }
 
     // Wait for events from the corestore and the replicator.
-    let corestore_events = corestore.lock().await.subscribe().await;
+    let corestore_events = corestore.subscribe().await;
     let replicator_events = replicator.subscribe().await;
     enum Event {
         Corestore(CorestoreEvent),
@@ -38,7 +38,7 @@ pub async fn replicate_corestore(
                 // Try to open the feed from the corestore. If it exists,
                 // it will be added to the protocol through
                 // CorestoreEvent::Feed.
-                let _ = corestore.lock().await.get_by_dkey(dkey).await;
+                let _ = corestore.get_by_dkey(dkey).await;
             }
             Event::Corestore(CorestoreEvent::Feed(feed)) => {
                 replicator.add_feed(feed).await;

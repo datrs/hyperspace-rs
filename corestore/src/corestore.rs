@@ -1,5 +1,5 @@
 use anyhow::Result;
-use async_std::sync::{Arc, Mutex};
+use async_std::sync::{Arc, Mutex, RwLock, RwLockReadGuard};
 use blake2_rfc::blake2b::Blake2b;
 use ed25519_dalek::{PublicKey, SecretKey};
 use futures::channel::mpsc;
@@ -36,8 +36,98 @@ pub enum Event {
     Feed(Arc<Mutex<Feed>>),
 }
 
-/// A store for hypercore feeds
+#[derive(Clone)]
 pub struct Corestore {
+    inner: Arc<RwLock<InnerCorestore>>,
+}
+
+/// A store for hypercore feeds.
+impl Corestore {
+    /// Open a corestore from disk
+    pub async fn open<P>(storage_path: P) -> Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        let inner = InnerCorestore::open(storage_path).await?;
+        Ok(Self {
+            inner: Arc::new(RwLock::new(inner)),
+        })
+    }
+
+    /// Subscribe to events from this corestore
+    pub async fn subscribe(&mut self) -> mpsc::Receiver<Event> {
+        self.inner.write().await.subscribe().await
+    }
+
+    /// Get a feed by its public key
+    pub async fn get_by_key<K>(&mut self, key: K) -> Result<ArcFeed>
+    where
+        K: AsRef<[u8]>,
+    {
+        self.inner.write().await.get_by_key(key).await
+    }
+
+    /// Get or create a writable feed by name
+    pub async fn get_by_name<T>(&mut self, name: T) -> Result<ArcFeed>
+    where
+        T: AsRef<str>,
+    {
+        self.inner.write().await.get_by_name(name).await
+    }
+
+    /// Get a feed by its discovery key
+    ///
+    /// This only works if the feed is found on disk
+    pub async fn get_by_dkey<K>(&mut self, dkey: K) -> Result<Option<ArcFeed>>
+    where
+        K: AsRef<[u8]>,
+    {
+        self.inner.write().await.get_by_dkey(dkey).await
+    }
+
+    /// Iterate over all feeds.
+    ///
+    /// Note: A lock on the corestore is kept until the iterator is dropped,
+    /// so don't use this across `await`s.
+    ///
+    /// Example:
+    /// ```rust
+    /// for feed in &corestore.feeds().await {
+    ///     // Do somethings with feed.
+    ///     // Don't await things here!
+    ///     // Instead, clone the feed if you need to keep a reference.
+    /// }
+    /// ```
+    pub async fn feeds(&self) -> FeedsIterator<'_> {
+        let inner = self.inner.read().await;
+        FeedsIterator::new(inner)
+    }
+}
+
+/// An iterator over feeds in a corestore.
+///
+/// Note: Because this is tied to a read lock, the iterator is only
+/// available on a reference to the iterator. See [Corestore::feeds].
+pub struct FeedsIterator<'a> {
+    inner: RwLockReadGuard<'a, InnerCorestore>,
+}
+
+impl<'a, 'b: 'a> IntoIterator for &'b FeedsIterator<'a> {
+    type Item = &'a ArcFeed;
+    type IntoIter = Values<'a, u64, ArcFeed>;
+
+    fn into_iter(self) -> Values<'a, u64, ArcFeed> {
+        self.inner.feeds()
+    }
+}
+
+impl<'a> FeedsIterator<'a> {
+    fn new(inner: RwLockReadGuard<'a, InnerCorestore>) -> Self {
+        Self { inner }
+    }
+}
+
+struct InnerCorestore {
     master_key: Key,
     feeds: FeedMap,
     #[allow(dead_code)]
@@ -46,15 +136,16 @@ pub struct Corestore {
     subscribers: Vec<mpsc::Sender<Event>>,
 }
 
-impl Corestore {
+impl InnerCorestore {
     /// Open a corestore from disk
-    pub async fn open<P>(storage_path: P) -> Result<Corestore>
+    pub async fn open<P>(storage_path: P) -> Result<Self>
     where
         P: AsRef<Path>,
     {
         let storage_path = storage_path.as_ref().to_path_buf();
         Self::with_storage_path(storage_path).await
     }
+
     async fn with_storage_path(path: PathBuf) -> Result<Self> {
         let master_key_path = path.join(MASTER_KEY_FILENAME);
         let mut master_key_storage = random_access_disk(master_key_path).await?;
@@ -274,12 +365,3 @@ fn generate_key() -> Key {
 async fn random_access_disk(path: PathBuf) -> Result<RandomAccessDisk> {
     RandomAccessDisk::open(path).await
 }
-
-// impl Arc<Mutex<Corestore>> {
-//     pub fn replicate(&self, replicator: Replicator) -> JoinHandle<()> {
-//         let corestore = (*self).clone();
-//         task::spawn(async move {
-//             replicate_corestore(corestore, replicator).await;
-//         })
-//     }
-// }
