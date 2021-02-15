@@ -1,4 +1,4 @@
-use async_std::channel;
+use async_std::channel::{self, Receiver, Sender};
 use async_std::net::{TcpListener, TcpStream};
 use async_std::prelude::FutureExt;
 use async_std::stream::{Stream, StreamExt};
@@ -23,16 +23,26 @@ pub struct NetworkStatus {
 pub type PeerInfoList = Vec<SocketAddr>;
 
 pub async fn run(mut replicator: Replicator, opts: Opts) -> io::Result<()> {
-    let port = opts.port;
+    let tcp_listener = create_tcp_listener(opts.port).await?;
+    let local_port = tcp_listener.local_addr()?.port();
 
-    let replicator_events = replicator.subscribe().await;
+    // Accept incoming connections on the tcp listener and forward them to the replicator.
+    let accept_task = task::spawn(accept_loop(replicator.clone(), tcp_listener));
+
     let (peer_tx, peer_rx) = channel::bounded::<PeerInfoList>(100);
     let (configure_tx, configure_rx) = channel::bounded::<NetworkStatus>(100);
 
-    let dht_task = task::spawn(dht_loop(opts, peer_tx, configure_rx));
-    let accept_task = task::spawn(accept_loop(replicator.clone(), port));
+    // Connect to the DHT, listen for configure messages to announce/lookup topics on the DHT, and
+    // forward found peers in the peer channel.
+    let dht_task = task::spawn(dht_loop(opts, local_port, peer_tx, configure_rx));
+
+    // Listen for found peers from the DHT and connect (over TCP) and forward the streams to the
+    // replicator.
     let connect_task = task::spawn(connect_loop(replicator.clone(), peer_rx));
+
+    // Listen for new feed events from the replicator and forward them to the DHT.
     // TODO: Don't announce all feeds.
+    let replicator_events = replicator.subscribe().await;
     let configure_task = task::spawn(configure_loop(replicator_events, configure_tx));
 
     connect_task
@@ -43,16 +53,16 @@ pub async fn run(mut replicator: Replicator, opts: Opts) -> io::Result<()> {
     Ok(())
 }
 
-// type ConfigTx = channel::Sender<NetworkStatus>;
-type ConfigRx = channel::Receiver<NetworkStatus>;
-type PeerInfoTx = channel::Sender<PeerInfoList>;
-type PeerInfoRx = channel::Receiver<PeerInfoList>;
-// type PeerTx = channel::Sender<TcpStream>;
-// type PeerRx = channel::Receiver<TcpStream>;
+// type ConfigTx = Sender<NetworkStatus>;
+type ConfigRx = Receiver<NetworkStatus>;
+type PeerInfoTx = Sender<PeerInfoList>;
+type PeerInfoRx = Receiver<PeerInfoList>;
+// type PeerTx = Sender<TcpStream>;
+// type PeerRx = Receiver<TcpStream>;
 
 pub async fn configure_loop<S>(
     mut replicator_events: S,
-    configure_tx: channel::Sender<NetworkStatus>,
+    configure_tx: Sender<NetworkStatus>,
 ) -> Result<()>
 where
     S: Stream<Item = ReplicatorEvent> + Unpin,
@@ -73,14 +83,20 @@ where
     Ok(())
 }
 
-pub async fn accept_loop(mut replicator: Replicator, port: u32) -> io::Result<()> {
+pub async fn create_tcp_listener(port: Option<u32>) -> Result<TcpListener> {
+    // If a port wasn't set in the options, use port 0 which lets the operating system assign a
+    let port = port.unwrap_or(0);
+
     let address = format!("127.0.0.1:{}", port);
-    // TODO: Also accept via UTP.
-    let listener = TcpListener::bind(&address).await?;
+    TcpListener::bind(&address).await
+}
+
+pub async fn accept_loop(mut replicator: Replicator, listener: TcpListener) -> io::Result<()> {
     info!(
         "accpeting peer connections on tcp://{}",
         listener.local_addr()?
     );
+
     let mut incoming = listener.incoming();
     while let Some(Ok(stream)) = incoming.next().await {
         let peer_addr = stream.peer_addr().unwrap().to_string();
@@ -112,7 +128,12 @@ pub async fn connect_loop(mut replicator: Replicator, mut peer_rx: PeerInfoRx) -
     Ok(())
 }
 
-async fn dht_loop(opts: Opts, peer_tx: PeerInfoTx, mut configure_rx: ConfigRx) -> io::Result<()> {
+async fn dht_loop(
+    opts: Opts,
+    local_port: u16,
+    peer_tx: PeerInfoTx,
+    mut configure_rx: ConfigRx,
+) -> io::Result<()> {
     let config = DhtConfig::default();
     let config = if opts.bootstrap.len() > 0 {
         config.set_bootstrap_nodes(&opts.bootstrap[..])
@@ -138,7 +159,6 @@ async fn dht_loop(opts: Opts, peer_tx: PeerInfoTx, mut configure_rx: ConfigRx) -
     let mut node: HyperDht = HyperDht::with_config(config).await?;
     debug!("Local address: {:?}", node.local_addr());
 
-    let port = opts.port;
     loop {
         let event = node.next().await;
         debug!("swarm event: {:?}", event);
@@ -169,7 +189,7 @@ async fn dht_loop(opts: Opts, peer_tx: PeerInfoTx, mut configure_rx: ConfigRx) -
                 debug!("configure network: {:?}", status);
                 if status.announce {
                     let opts: QueryOpts = (&status.topic[..]).try_into().unwrap();
-                    let opts = opts.port(port);
+                    let opts = opts.port(local_port as u32);
                     let opts = opts.local_addr("127.0.0.1");
                     debug!("announce: {:?}", opts);
                     node.announce(opts);

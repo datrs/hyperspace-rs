@@ -33,10 +33,10 @@ This example starts two `hyperspace-server` instances and runs a hyperswarm DHT 
 cargo run --bin hyperspace-server -- --dht -a 127.0.0.1:3401
 
 # 2. Start server 1
-cargo run --bin hyperspace-server -- -s /tmp/hs1 -h hs1 -b 127.0.0.1:3401 -p 7001
+cargo run --bin hyperspace-server -- -s /tmp/hs1 -h hs1 -b 127.0.0.1:3401
 
 # 3. Start server 2
-cargo run --bin hyperspace-server -- -s /tmp/hs2 -h hs2 -b 127.0.0.1:3401 -p 7002
+cargo run --bin hyperspace-server -- -s /tmp/hs2 -h hs2 -b 127.0.0.1:3401
 
 # 4. Write to a feed on server 1
 cargo run --bin hyperspace-client -- -h hs1 -n afeed write

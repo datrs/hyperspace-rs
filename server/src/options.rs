@@ -27,8 +27,8 @@ pub struct Opts {
     pub bootstrap: Vec<SocketAddr>,
 
     /// Set a default port to announce and listen on.
-    #[clap(short, long, default_value = "12345")]
-    pub port: u32,
+    #[clap(short, long)]
+    pub port: Option<u32>,
 
     /// Run a local bootstrapping dht node
     #[clap(long)]
@@ -46,7 +46,7 @@ impl Default for Opts {
             host: None,
             address: None,
             bootstrap: vec![],
-            port: 12345,
+            port: None,
             dht: false,
             verbose: 0,
         }
