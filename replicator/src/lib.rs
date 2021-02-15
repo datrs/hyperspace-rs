@@ -11,7 +11,9 @@ use futures::io::{AsyncRead, AsyncWrite};
 use futures::prelude::*;
 use futures::stream::StreamExt;
 use hypercore::Feed;
-use hypercore_protocol::{discovery_key, Event as ProtocolEvent, Protocol, ProtocolBuilder};
+use hypercore_protocol::{Event as ProtocolEvent, Protocol, ProtocolBuilder};
+
+pub use hypercore_protocol::{discovery_key, DiscoveryKey, Key};
 use log::*;
 use std::collections::HashMap;
 
@@ -19,7 +21,6 @@ mod peer;
 pub use peer::{Peer, PeeredFeed, Stats};
 
 pub type RemotePublicKey = Vec<u8>;
-pub type DiscoveryKey = Vec<u8>;
 
 #[derive(Clone, Debug)]
 pub enum ReplicatorEvent {
@@ -120,8 +121,8 @@ impl Replicator {
         let mut this = self.clone();
         let task = task::spawn(async move {
             let replicator_events = this.subscribe().await.map(|e| Event::Replicator(e));
-            let mut proto_control = proto.control();
-            let proto_events = proto.into_stream().map(|e| match e {
+            let mut proto_control = proto.commands();
+            let proto_events = proto.map(|e| match e {
                 Ok(ev) => Event::Protocol(ev),
                 Err(err) => Event::Error(err.into()),
             });

@@ -1,9 +1,8 @@
 use anyhow::Result;
+use async_std::stream::StreamExt;
 use async_std::sync::{Arc, Mutex};
 use async_std::task::{self, JoinHandle};
-use futures::future::Either;
 use futures::future::FutureExt;
-use futures::stream::StreamExt;
 use hypercore::bitfield::Bitfield;
 use hypercore::{Event, Feed, Node, Proof, Signature};
 use hypercore_protocol::schema::*;
@@ -103,18 +102,27 @@ impl Peer {
     }
 
     pub async fn run(&mut self) -> Result<()> {
-        let mut feed_events = self.feed.lock().await.subscribe();
-        // eprintln!("enter peer-feed loop");
-        loop {
-            match futures::future::select(self.channel.next(), feed_events.next()).await {
-                Either::Left((Some(message), _)) => self.on_message(message).await?,
-                Either::Right((Some(event), _)) => self.on_feed_event(event).await?,
-                _ => return Ok(()),
+        enum Event {
+            Feed(hypercore::Event),
+            Channel(hypercore_protocol::Message),
+        }
+
+        let feed_events = self.feed.lock().await.subscribe();
+        let feed_events = feed_events.map(Event::Feed);
+
+        let channel_events = self.channel.take_receiver().unwrap().map(Event::Channel);
+
+        let mut events = channel_events.merge(feed_events);
+        while let Some(event) = events.next().await {
+            match event {
+                Event::Channel(e) => self.on_channel_message(e).await?,
+                Event::Feed(e) => self.on_feed_event(e).await?,
             }
         }
+        Ok(())
     }
 
-    async fn on_feed_event(&mut self, event: Event) -> Result<()> {
+    async fn on_feed_event(&mut self, event: hypercore::Event) -> Result<()> {
         // eprintln!("feed event {:?}", event);
         match event {
             Event::Download(index) => self.send_have(index, None).await?,
@@ -127,7 +135,7 @@ impl Peer {
         Ok(())
     }
 
-    async fn on_message(&mut self, message: Message) -> Result<()> {
+    async fn on_channel_message(&mut self, message: Message) -> Result<()> {
         // eprintln!("onmessage {:?}", message);
         match message {
             Message::Open(_) => self.on_open().await?,
