@@ -18,7 +18,7 @@ const STORAGE_DIR: &str = ".hyperspace-rs";
 /// Shared application state.
 #[derive(Clone)]
 pub struct State {
-    corestore: Arc<Mutex<Corestore>>,
+    corestore: Corestore,
     replicator: Replicator,
 }
 
@@ -45,7 +45,6 @@ pub async fn listen(opts: Opts) -> anyhow::Result<()> {
 
     // Open a corestore and wrap in Arc<Mutex>
     let corestore = Corestore::open(storage).await?;
-    let corestore = Arc::new(Mutex::new(corestore));
 
     // Create a replicator
     let replicator = Replicator::new();
