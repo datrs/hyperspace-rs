@@ -15,6 +15,7 @@ message HyperspaceStatusResponse {
   required string apiVersion = 1;
   optional bool holepunchable = 2;
   optional string remoteAddress = 3;
+  optional string version = 4;
 }
 
 // Corestore Methods
@@ -32,6 +33,7 @@ message OpenResponse {
   required uint64 byteLength = 3;
   required bool writable = 4;
   repeated Peer peers = 5;
+  optional bytes discoveryKey = 6;
 }
 
 // Corestore Events
@@ -153,6 +155,7 @@ message DownloadRequest {
   optional uint64 end = 4;
   repeated uint64 blocks = 5;
   optional bool linear = 6;
+  optional bool live = 7; // ie no end (end = -1 in the hypercore api)
 }
 
 message DownloadedRequest {
@@ -174,6 +177,21 @@ message LockRequest {
   required uint64 id = 1;
 }
 
+message WatchDownloadsRequest {
+  required uint64 id = 1;
+}
+
+message UnwatchDownloadsRequest {
+  required uint64 id = 1;
+}
+
+message WatchUploadsRequest {
+  required uint64 id = 1;
+}
+
+message UnwatchUploadsRequest {
+  required uint64 id = 1;
+}
 
 // Hypercore Events
 
@@ -195,6 +213,19 @@ message CloseEvent {
 message WaitEvent {
   required uint64 id = 1;
   required uint64 onWaitId = 2;
+  required uint64 seq = 3;
+}
+
+message DownloadEvent {
+  required uint64 id = 1;
+  required uint64 seq = 2;
+  optional uint64 byteLength = 3;
+}
+
+message UploadEvent {
+  required uint64 id = 1;
+  required uint64 seq = 2;
+  required uint64 byteLength = 3;
 }
 
 // Extension Methods
@@ -222,6 +253,7 @@ service Hyperspace {
 
   // Methods
   rpc Status (hrpc.Void) returns (HyperspaceStatusResponse) { option (hrpc.method) = 1; }
+  rpc Stop (hrpc.Void) returns (hrpc.Void) { option (hrpc.method) = 2; }
 }
 
 service Corestore {
@@ -262,6 +294,16 @@ service Hypercore {
   rpc OnPeerRemove (PeerEvent) returns (hrpc.Void) { option (hrpc.method) = 19; }
   rpc OnExtension (ExtensionMessage) returns (hrpc.Void) { option (hrpc.method) = 20; }
   rpc OnWait (WaitEvent) returns (hrpc.Void) { option (hrpc.method) = 21; }
+
+  // Downloads
+  rpc WatchDownloads (WatchDownloadsRequest) returns (hrpc.Void) { option (hrpc.method) = 22;  }
+  rpc UnwatchDownloads (UnwatchDownloadsRequest) returns (hrpc.Void) { option (hrpc.method) = 23;  }
+  rpc OnDownload (DownloadEvent) returns (hrpc.Void) { option (hrpc.method) = 24; }
+
+  // Uploads
+  rpc WatchUploads (WatchUploadsRequest) returns (hrpc.Void) { option (hrpc.method) = 25;  }
+  rpc UnwatchUploads (UnwatchUploadsRequest) returns (hrpc.Void) { option (hrpc.method) = 26;  }
+  rpc OnUpload (UploadEvent) returns (hrpc.Void) { option (hrpc.method) = 27; }
 }
 
 service Network {
