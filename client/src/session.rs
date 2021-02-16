@@ -79,7 +79,14 @@ impl RemoteCorestore {
 impl codegen::server::Hypercore for RemoteCorestore {
     async fn on_append(&mut self, req: AppendEvent) -> Result<()> {
         if let Some(core) = self.sessions.get(req.id) {
-            core.on_append(req.length, req.byte_length).await
+            core.on_append(req.length, req.byte_length).await;
+        }
+        Ok(())
+    }
+
+    async fn on_download(&mut self, req: DownloadEvent) -> Result<()> {
+        if let Some(core) = self.sessions.get(req.id) {
+            core.on_download(req.seq, req.byte_length).await;
         }
         Ok(())
     }
@@ -229,16 +236,27 @@ impl RemoteHypercore {
         inner.byte_length = byte_length;
 
         let event = HypercoreEvent::Append;
-        let mut listeners = inner.listeners.clone();
-        let futs = listeners.iter_mut().map(|s| s.send(event.clone()));
-        let _ = future::join_all(futs).await;
+        inner.emit(event).await;
+    }
+
+    pub(crate) async fn on_download(&self, seq: u64, byte_length: Option<u64>) {
+        let mut inner = self.inner.write();
+        if let Some(byte_length) = byte_length {
+            inner.byte_length = byte_length;
+        }
+        if seq >= inner.len() {
+            inner.length = seq + 1;
+        }
+
+        let event = HypercoreEvent::Download(seq);
+        inner.emit(event).await;
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum HypercoreEvent {
     Append,
-    Download,
+    Download(u64),
 }
 
 #[derive(Default)]
@@ -259,10 +277,19 @@ impl InnerHypercore {
         self.listeners.push(send);
         recv
     }
-    // async fn emit(&mut self, event: HypercoreEvent) {
-    //     let futs = self.listeners.iter_mut().map(|s| s.send(event.clone()));
-    //     let _ = future::join_all(futs).await;
+
+    fn len(&self) -> u64 {
+        self.length
+    }
+
+    // fn byte_length(&self) -> u64 {
+    //     self.byte_length
     // }
+
+    async fn emit(&mut self, event: HypercoreEvent) {
+        let futs = self.listeners.iter_mut().map(|s| s.send(event.clone()));
+        let _ = future::join_all(futs).await;
+    }
 }
 
 impl fmt::Debug for InnerHypercore {

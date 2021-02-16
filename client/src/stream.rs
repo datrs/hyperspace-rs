@@ -27,8 +27,14 @@ async fn seek(mut core: RemoteHypercore, byte_offset: u64) -> (RemoteHypercore, 
 async fn onappend_get(mut core: RemoteHypercore, seq: u64) -> (RemoteHypercore, GetOutput) {
     let mut events = core.subscribe();
     while let Some(event) = events.next().await {
-        if let HypercoreEvent::Append = event {
-            return get(core, seq).await;
+        match event {
+            HypercoreEvent::Append => {
+                return get(core, seq).await;
+            }
+            HypercoreEvent::Download(downloaded_seq) if downloaded_seq == seq => {
+                return get(core, seq).await;
+            }
+            _ => {}
         }
     }
     (core, Ok(None))

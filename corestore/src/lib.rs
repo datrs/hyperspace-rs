@@ -4,6 +4,6 @@ mod corestore;
 mod feed_map;
 mod replicate;
 
-pub use crate::corestore::{Corestore, Event};
-pub use hypercore::Feed;
+pub use crate::corestore::{ArcFeed, Corestore, Event};
+pub use hypercore::{Event as FeedEvent, Feed};
 pub use replicate::replicate_corestore;

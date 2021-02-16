@@ -155,9 +155,8 @@ async fn dht_loop(
     // .await
     // .ephemeral()
     // .expect("Failed to create dht with socket");
-    debug!("Init DHT: {:?}", config);
     let mut node: HyperDht = HyperDht::with_config(config).await?;
-    debug!("Local address: {:?}", node.local_addr());
+    debug!("DHT bound to: {:?}", node.local_addr());
 
     loop {
         let event = node.next().await;
@@ -177,7 +176,6 @@ async fn dht_loop(
                     HyperDhtEvent::AnnounceResult { .. } => {}
                     HyperDhtEvent::LookupResult { lookup, .. } => {
                         let remotes = lookup.remotes().cloned().collect::<Vec<_>>();
-                        eprintln!("REMOTES: {:?}", remotes);
                         peer_tx.send(remotes).await.unwrap();
                     }
                     HyperDhtEvent::UnAnnounceResult { .. } => {}
