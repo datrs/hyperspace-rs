@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0"
 hypercore-replicator = { path = "../replicator" }
 hypercore = { git = "https://github.com/Frando/datrs-hypercore", branch = "hyperspace" }
 async-std = "1.9"
-hex = "0.4.2"
+hex = "0.4.3"
 rand = "0.7.3"
 random-access-disk = "2.0.0"
 random-access-storage = "4.0.0"

@@ -9,6 +9,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 hrpc = { git = "https://github.com/Frando/hrpc-rs.git" }
+# hrpc = { path = "../../hrpc" }
 async-trait = "0.1.36"
 prost = "0.6.1"
 futures = "0.3.5"

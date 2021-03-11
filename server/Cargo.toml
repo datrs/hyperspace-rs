@@ -17,6 +17,7 @@ hypercore-replicator = { path = "../replicator" }
 corestore = { path = "../corestore" }
 hyperswarm-dht = { git = "https://github.com/Frando/hyperswarm-dht.git", branch = "hyperspace" }
 hrpc = { git = "https://github.com/Frando/hrpc-rs.git" }
+# hrpc = { path = "../../hrpc" }
 async-std = { version = "1.9", features = ["attributes", "unstable"] }
 env_logger = "0.7.1"
 futures = "0.3.5"
@@ -24,7 +25,7 @@ log = "0.4.11"
 async-trait = "0.1.36"
 anyhow = "1.0.31"
 prost = "0.6.1"
-hex = "0.4.2"
+hex = "0.4"
 clap = "3.0.0-beta.1"
 dirs = "3.0.1"
 async-signals = "0.3.1"

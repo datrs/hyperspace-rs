@@ -6,7 +6,6 @@ use futures::channel::mpsc;
 use futures::sink::SinkExt;
 use hypercore::{storage_disk, Feed};
 use hypercore_replicator::discovery_key;
-
 use log::*;
 use rand::rngs::{OsRng, StdRng};
 use rand::SeedableRng;
@@ -14,6 +13,7 @@ use rand_core::RngCore;
 use random_access_disk::RandomAccessDisk;
 use random_access_storage::RandomAccess;
 use std::collections::hash_map::Values;
+use std::convert::TryInto;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 
@@ -23,7 +23,7 @@ const MASTER_KEY_FILENAME: &str = "master_key";
 const NAMESPACE: &str = "corestore";
 
 /// A hypercore public key
-pub type Key = Vec<u8>;
+pub type Key = [u8; 32];
 /// A feed name
 pub type Name = Vec<u8>;
 /// A feed that can be shared between threads
@@ -60,10 +60,7 @@ impl Corestore {
     }
 
     /// Get a feed by its public key
-    pub async fn get_by_key<K>(&mut self, key: K) -> Result<ArcFeed>
-    where
-        K: AsRef<[u8]>,
-    {
+    pub async fn get_by_key(&mut self, key: Key) -> Result<ArcFeed> {
         self.inner.write().await.get_by_key(key).await
     }
 
@@ -78,10 +75,7 @@ impl Corestore {
     /// Get a feed by its discovery key
     ///
     /// This only works if the feed is found on disk
-    pub async fn get_by_dkey<K>(&mut self, dkey: K) -> Result<Option<ArcFeed>>
-    where
-        K: AsRef<[u8]>,
-    {
+    pub async fn get_by_dkey(&mut self, dkey: Key) -> Result<Option<ArcFeed>> {
         self.inner.write().await.get_by_dkey(dkey).await
     }
 
@@ -154,8 +148,8 @@ impl InnerCorestore {
     async fn with_storage_path(path: PathBuf) -> Result<Self> {
         let master_key_path = path.join(MASTER_KEY_FILENAME);
         let mut master_key_storage = random_access_disk(master_key_path).await?;
-        let master_key = match master_key_storage.read(0, 32).await {
-            Ok(key) => key,
+        let master_key: Key = match master_key_storage.read(0, 32).await {
+            Ok(key) => key.try_into().unwrap(),
             Err(_) => {
                 let key = generate_key();
                 // TODO: Map err, not unwrap.
@@ -186,11 +180,7 @@ impl InnerCorestore {
     }
 
     /// Get a feed by its public key
-    pub async fn get_by_key<K>(&mut self, key: K) -> Result<ArcFeed>
-    where
-        K: AsRef<[u8]>,
-    {
-        let key = key.as_ref().to_vec();
+    pub async fn get_by_key(&mut self, key: Key) -> Result<ArcFeed> {
         self.open_feed(Some(key), None).await
     }
 
@@ -206,11 +196,7 @@ impl InnerCorestore {
     /// Get a feed by its discovery key
     ///
     /// This only works if the feed is found on disk
-    pub async fn get_by_dkey<K>(&mut self, dkey: K) -> Result<Option<ArcFeed>>
-    where
-        K: AsRef<[u8]>,
-    {
-        let dkey = dkey.as_ref().to_vec();
+    pub async fn get_by_dkey(&mut self, dkey: Key) -> Result<Option<ArcFeed>> {
         if let Some(feed) = self.feeds.get_dkey(&dkey) {
             return Ok(Some(feed.clone()));
         }
@@ -220,8 +206,8 @@ impl InnerCorestore {
             let mut key_storage = self.feed_storage(&dkey, "key").await?;
             key_storage.read(0, 32).await
         };
-        let feed = match &key {
-            Ok(key) => Some(self.get_by_key(key).await?),
+        let feed = match key {
+            Ok(key) => Some(self.get_by_key(key.try_into().unwrap()).await?),
             Err(_) => None,
         };
         Ok(feed)
@@ -252,7 +238,7 @@ impl InnerCorestore {
             (_, Some(name)) => Some(name),
             (None, None) => None,
             (Some(key), None) => {
-                let dkey = discovery_key(&key);
+                let dkey = discovery_key(&key[..]);
                 self.read_name(&dkey).await?
             }
         };
@@ -340,7 +326,7 @@ impl InnerCorestore {
         &self,
         name: Option<Name>,
     ) -> (PublicKey, Option<SecretKey>, Option<Name>) {
-        let name = name.or_else(|| Some(generate_key())).unwrap();
+        let name = name.or_else(|| Some(generate_key().to_vec())).unwrap();
         let seed = self.derive_secret(&NAMESPACE.as_bytes().to_vec(), &name);
         let secret_key = SecretKey::from_bytes(&seed).unwrap();
         let public_key: PublicKey = (&secret_key).into();
@@ -356,12 +342,12 @@ fn derive_key(master_key: &[u8], ns: &[u8], name: &[u8]) -> Key {
     let mut hasher = Blake2b::with_key(32, master_key);
     hasher.update(ns);
     hasher.update(name);
-    hasher.finalize().as_bytes().to_vec()
+    hasher.finalize().as_bytes().try_into().unwrap()
 }
 
 fn generate_key() -> Key {
     let mut rng = StdRng::from_rng(OsRng::default()).unwrap();
-    let mut key = vec![0u8; 32];
+    let mut key = [0u8; 32];
     rng.fill_bytes(&mut key);
     key
 }

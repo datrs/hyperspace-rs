@@ -68,10 +68,10 @@ mod test {
         let key1 = {
             let mut feed1 = feed1.lock().await;
             feed1.append("hello".as_bytes()).await?;
-            feed1.public_key().as_bytes().to_vec()
+            feed1.public_key().to_bytes()
         };
 
-        let _ = store2.get_by_key(&key1).await?;
+        let _ = store2.get_by_key(key1).await?;
 
         let cap = 1024 * 1024 * 4;
 
@@ -83,7 +83,7 @@ mod test {
         task::spawn(replicate_corestore(store1.clone(), rep1.clone()));
         task::spawn(replicate_corestore(store2.clone(), rep2.clone()));
 
-        let feed2 = store2.get_by_key(&key1).await?;
+        let feed2 = store2.get_by_key(key1).await?;
         let mut feed2_events = feed2.lock().await.subscribe();
 
         let event = feed2_events.next().await;

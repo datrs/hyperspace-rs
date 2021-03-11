@@ -35,7 +35,13 @@ impl PeeredFeed {
         };
         let stats = Arc::new(Mutex::new(stats));
         let mut peer = Peer::new(self.feed.clone(), channel, stats.clone());
-        let task = task::spawn(async move { peer.run().await });
+        let task = task::spawn(async move {
+            let res = peer.run().await;
+            if let Err(e) = res.as_ref() {
+                log::error!("peer replication error: {:?}", e);
+            }
+            res
+        });
         self.tasks.push(task);
         self.stats.push(stats);
     }
@@ -175,7 +181,6 @@ impl Peer {
     }
 
     async fn on_have(&mut self, have: Have) -> Result<()> {
-        // eprintln!("onhave {:?}", have);
         let mut feed = self.feed.lock().await;
         let mut wants = vec![];
         if let Some(bitfield) = have.bitfield {

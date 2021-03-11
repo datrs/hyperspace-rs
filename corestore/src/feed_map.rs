@@ -35,7 +35,7 @@ impl FeedMap {
     }
 
     pub fn insert(&mut self, feed: Feed, name: Option<Name>) -> ArcFeed {
-        let key = feed.public_key().as_bytes().to_vec();
+        let key = feed.public_key().to_bytes();
         let dkey = discovery_key(&key);
         let feed = Arc::new(Mutex::new(feed));
         let id = self.feeds.len() as u64;
@@ -55,7 +55,7 @@ impl FeedMap {
 
     pub async fn _remove(&mut self, feed: ArcFeed) {
         let feed = feed.lock().await;
-        let key = feed.public_key().as_bytes().to_vec();
+        let key = feed.public_key().to_bytes();
         let dkey = discovery_key(&key);
         let id = self.keys.get(&key);
         if id.is_none() {

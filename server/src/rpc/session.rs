@@ -6,8 +6,9 @@ use corestore::{ArcFeed, Corestore, Feed, FeedEvent};
 use hyperspace_common::client::Client;
 use hyperspace_common::server;
 use hyperspace_common::*;
-use log::*;
+// use log::*;
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::io::{self, Error, ErrorKind};
 use task::JoinHandle;
 
@@ -75,6 +76,7 @@ impl server::Hypercore for Session {
 }
 
 struct FeedState {
+    #[allow(dead_code)]
     id: u32,
     feed: ArcFeed,
     notify_task: Option<JoinHandle<io::Result<()>>>,
@@ -143,6 +145,9 @@ impl server::Corestore for Session {
         let feed = if let Some(name) = req.name {
             self.corestore.get_by_name(name).await.map_err(map_err)?
         } else if let Some(key) = req.key {
+            let key: [u8; 32] = key
+                .try_into()
+                .map_err(|_| io::Error::new(io::ErrorKind::Other, "Invalid key length"))?;
             self.corestore.get_by_key(key).await.map_err(map_err)?
         } else {
             return Err(Error::new(ErrorKind::Other, "Invalid parameters"));

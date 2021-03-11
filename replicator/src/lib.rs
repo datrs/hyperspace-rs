@@ -20,7 +20,7 @@ use std::collections::HashMap;
 mod peer;
 pub use peer::{Peer, PeeredFeed, Stats};
 
-pub type RemotePublicKey = Vec<u8>;
+pub type RemotePublicKey = [u8; 32];
 
 #[derive(Clone, Debug)]
 pub enum ReplicatorEvent {
@@ -79,7 +79,7 @@ impl Replicator {
     /// Add a new connection to the replicator
     pub async fn add_stream<S>(&mut self, stream: S, is_initiator: bool)
     where
-        S: AsyncRead + AsyncWrite + Send + Clone + Unpin + 'static,
+        S: AsyncRead + AsyncWrite + Send + Unpin + 'static,
     {
         let proto = ProtocolBuilder::new(is_initiator).connect(stream);
         self.run_peer(proto).await;
@@ -97,10 +97,9 @@ impl Replicator {
     /// Get stats on the replication status for each feed
     pub async fn stats(&mut self) -> Vec<(DiscoveryKey, Vec<Stats>)> {
         let mut feeds = self.feeds.lock().await;
-        let futs = feeds.iter_mut().map(|(dkey, peered_feed)| {
-            let dkey = dkey.to_vec();
-            peered_feed.stats().map(|stats| (dkey, stats))
-        });
+        let futs = feeds
+            .iter_mut()
+            .map(|(dkey, peered_feed)| peered_feed.stats().map(move |stats| (*dkey, stats)));
         let stats = futures::future::join_all(futs).await;
         stats
     }
@@ -113,10 +112,9 @@ impl Replicator {
         Ok(())
     }
 
-    async fn run_peer<R, W>(&mut self, proto: Protocol<R, W>)
+    async fn run_peer<IO>(&mut self, proto: Protocol<IO>)
     where
-        R: AsyncRead + Send + Unpin + 'static,
-        W: AsyncWrite + Send + Unpin + 'static,
+        IO: AsyncRead + AsyncWrite + Send + Unpin + 'static,
     {
         let mut this = self.clone();
         let task = task::spawn(async move {
@@ -138,7 +136,7 @@ impl Replicator {
                         let feeds = this.feeds.lock().await;
                         for peered_feed in feeds.values() {
                             let feed = peered_feed.feed.lock().await;
-                            let public_key = feed.public_key().as_bytes().to_vec();
+                            let public_key = feed.public_key().to_bytes();
                             proto_command.open(public_key).await.unwrap();
                         }
                     }

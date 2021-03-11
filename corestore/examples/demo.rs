@@ -3,6 +3,7 @@ use async_std::net::{TcpListener, TcpStream};
 use async_std::task;
 use futures::stream::StreamExt;
 use log::*;
+use std::convert::TryInto;
 use std::env;
 
 use corestore::{replicate_corestore, Corestore};
@@ -18,12 +19,14 @@ fn usage() {
     std::process::exit(1);
 }
 
-fn keys() -> Vec<Vec<u8>> {
+fn keys() -> Vec<[u8; 32]> {
     let keys = [
         "f22d5e2f38acbe6b1050ec9d11a35c4e49113a50b83607d784e31d71318fb001",
         "48b3f23d7f2944b736d2a97643f0cecb98753d63c595dd80b28be4dfd748e929",
     ];
-    keys.iter().map(|k| hex::decode(k).unwrap()).collect()
+    keys.iter()
+        .map(|k| hex::decode(k).unwrap().try_into().unwrap())
+        .collect()
 }
 
 fn fmtkey<K>(key: K) -> String
@@ -53,7 +56,7 @@ async fn async_main() -> Result<()> {
 
     {
         for key in keys().iter() {
-            let feed = corestore.get_by_key(&key).await?;
+            let feed = corestore.get_by_key(*key).await?;
             let feed = feed.lock().await;
             info!(
                 "added feed: key {} dkey {} len {}",

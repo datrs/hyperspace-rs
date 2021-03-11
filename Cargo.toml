@@ -4,6 +4,7 @@ members = ["client","server", "common", "corestore", "replicator", "examples/*"]
 [patch.crates-io]
 hypercore = { git = "https://github.com/Frando/datrs-hypercore", branch = "hyperspace" }
 hypercore-protocol = { git = "https://github.com/Frando/hypercore-protocol-rs", branch = "reduce-async" }
+# hrpc = { path = "../hrpc" }
 
 # Needed until https://github.com/danburkert/prost/pull/317 is merged.
 prost = { git = "https://github.com/Frando/prost", branch = "unknown_fields" }
