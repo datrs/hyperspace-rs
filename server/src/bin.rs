@@ -10,9 +10,9 @@ fn main() -> anyhow::Result<()> {
 
 async fn async_main(opts: Opts) -> anyhow::Result<()> {
     if opts.dht {
-        let (addr, task) = run_bootstrap_node(opts).await?;
+        let (addr, task) = run_bootstrap_node(opts.address).await?;
         log::info!("bootstrap node address: {}", addr);
-        Ok(task.await)
+        task.await.map_err(|e| e.into())
     } else {
         listen(opts).await
     }

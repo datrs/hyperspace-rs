@@ -8,7 +8,7 @@ use log::*;
 mod network;
 mod options;
 mod rpc;
-pub use network::run_bootstrap_node;
+pub use hyperswarm::run_bootstrap_node;
 pub use options::Opts;
 
 const STORAGE_DIR: &str = ".hyperspace-rs";
@@ -19,6 +19,16 @@ pub struct State {
     corestore: Corestore,
     replicator: Replicator,
 }
+
+// pub struct Server {
+//     opts: Opts
+// }
+
+// impl Server {
+//     pub fn with_opts(opts: Opts) -> Self {
+//         Self { opts }
+//     }
+// }
 
 /// Open the server and start listening
 ///

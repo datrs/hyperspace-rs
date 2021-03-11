@@ -15,7 +15,7 @@ path = "src/bin.rs"
 hyperspace-common = { path = "../common" }
 hypercore-replicator = { path = "../replicator" }
 corestore = { path = "../corestore" }
-hyperswarm-dht = { git = "https://github.com/Frando/hyperswarm-dht.git", branch = "hyperspace" }
+hyperswarm = { git = "https://github.com/Frando/hyperswarm-rs.git", branch = "main" }
 hrpc = { git = "https://github.com/Frando/hrpc-rs.git" }
 # hrpc = { path = "../../hrpc" }
 async-std = { version = "1.9", features = ["attributes", "unstable"] }
